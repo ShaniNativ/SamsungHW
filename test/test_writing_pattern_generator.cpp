@@ -11,10 +11,14 @@ Exercise: Samsumg - Work Assigment
 //write deserialization
 
 //gdpp23 src/writing_pattern_generator.cpp src/configurator.cpp test/test_writing_pattern_generator.cpp -I./include -lyaml-cpp -o test_wp.out 
-int main()
+int main(int argc, char* argv[])
 {
+    if(argc != 2)
+    {
+        throw std::runtime_error("Missing input: config.yaml ");
+    }
     std::shared_ptr<samsung::IConfigurator> configurator(new samsung::YamlConfigurator()); 
-    configurator->ParseConfigurationFile("./config_2.yaml");
+    configurator->ParseConfigurationFile(argv[1]);
 
     samsung::WPGenerator generator; 
     generator.GenerateBinaryFromFile(configurator); 

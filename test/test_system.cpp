@@ -11,11 +11,15 @@ Exercise: Samsumg - Work Assigment
 
 
 
-int main()
+int main(int argc, char* argv[])
 {
+    if(argc != 2)
+    {
+        throw std::runtime_error("Missing input: config.yaml ");
+    }
     //init configurator
     std::shared_ptr<samsung::IConfigurator> configurator(new samsung::YamlConfigurator()); 
-    configurator->ParseConfigurationFile("./config_2.yaml");
+    configurator->ParseConfigurationFile(argv[1]);
 
     samsung::WPGenerator generator; 
 
