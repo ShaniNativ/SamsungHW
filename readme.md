@@ -1,7 +1,7 @@
 
 System Overview
 
-The system, writtan as home assigmnet to Samsung, simulates data transmission and reception to FLASH memory over a
+The system, was developed as a home assignment for Samsung, simulates data transmission and reception to FLASH memory over a
 communication channel. The main focus of this project is early detection of system
 failures, which occur when multiple and contiguous memory writes happen within a defined
 time frame. Upon detecting such a condition, the system rites a log file with the details of
