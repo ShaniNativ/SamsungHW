@@ -79,6 +79,10 @@ private:
 
     std::vector<MemoryWrite> m_current_pattern;
 
+
+    /*
+    * @desc: Finilaize current memory write by pushing it to m_current_pattern vector 
+    */
     void PushCurrentMemoryWrite(std::chrono::steady_clock::time_point cur_time);
 
     /*
