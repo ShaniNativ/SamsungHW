@@ -13,6 +13,30 @@ Exercise: Samsumg - Work Assigment
 
 /*============================ PUBLIC API =====================================*/
 
+samsung::WPGenerator::WPGenerator() : m_data_file("data.txt", std::ios::in | std::ios::out |  std::ios::trunc)
+{
+    if (!m_data_file) 
+    {
+        throw std::runtime_error("Error: Could not open file for writing");
+    }
+
+    // Create a buffer filled with zeros
+    char buffer[g_data_size] = {0};
+
+    // Write the zeroed buffer to the file
+    m_data_file.write(buffer, g_data_size);
+    m_data_file.seekp(0); 
+
+    std::string str = "dummy data for frames";
+    m_data_file.write(str.c_str(), str.size());
+
+}
+
+samsung::WPGenerator::~WPGenerator()
+{
+    m_data_file.close();
+}
+
 void samsung::WPGenerator::GenerateBinaryFromFile(std::shared_ptr<samsung::IConfigurator> configurator)
 {
     m_config_params = configurator->GetConfigFile();
@@ -28,14 +52,29 @@ void samsung::WPGenerator::RegisterForNewBinFile(ilrd::Acallback<const std::stri
 
 /*============================= PRIVATE API ===================================*/
 
-void samsung::WPGenerator::Serialize(const std::string& filename)
+void samsung::WPGenerator::CopyData(char* data)
+{
+    if (!m_data_file.is_open()) 
+    {
+        throw std::runtime_error("Error: Data file is not open");
+
+    }
+
+    m_data_file.seekp(0);
+
+    if (!m_data_file.read(data, g_data_size)) 
+    {
+        throw std::runtime_error("Failed to read file content");
+    }
+}
+
+void samsung::WPGenerator::Serialize(const std::string &filename)
 {
     std::ofstream bin_file(filename, std::ios::out | std::ios::binary); 
 
     if (!bin_file.is_open()) 
     {
-        std::cerr << "Error: Could not open file for writing: " << filename << std::endl;
-        return; //maybe throw an exceeption???
+        throw std::runtime_error("Error: Could not open binary file for writing");
     }
 
     std::vector<Frame> all_frames;
@@ -87,7 +126,7 @@ std::vector<samsung::Frame> samsung::WPGenerator::GenerateFramesInMW
         frame.address = memory_write.start_address + (i * adrress_step);
         frame.time_ms = memory_write.start_time*1000 + (i * time_interval_ms);
         //generate data
-        std::memset(frame.data, 0, g_data_size);
+        CopyData(frame.data);
         total_frames.push_back(frame);
     }
     
