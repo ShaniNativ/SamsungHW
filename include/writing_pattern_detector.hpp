@@ -24,8 +24,7 @@ namespace samsung
  * @details This class is responsible for receiving FLASH frames 
  *          during system execution and detecting if a system 
  *          failure occurs based on timing and address continuity 
- *          constraints defined in the YAML configuration file 
- *          (THRESHOLD and DELTA).
+ *          constraints (THRESHOLD and DELTA).
  *          If a failure is detected, a log file is generated 
  *          and further writes to FLASH are ignored to prevent 
  *          system instability.
@@ -39,14 +38,14 @@ public:
     * @desc: Constructor 
     * @params: 
     */
-    WritingPatternDetector(); 
+    WritingPatternDetector(uint32_t delta, uint32_t threshold); 
 
     /*
     * @desc: Init and Resets the internal state of the detector. Should be called between 
              test runs to ensure clean state
     * @params: configurator - shared pointer to IConfigurator
     */
-    void InitDetector(std::shared_ptr<samsung::IConfigurator> configurator);
+    // void InitDetector(std::shared_ptr<samsung::IConfigurator> configurator);
 
     
     /*
@@ -66,16 +65,21 @@ private:
     uint32_t m_delta;
     uint32_t m_threshold;
     bool m_sf_detected; 
-    using deque_pair = std::pair<std::chrono::time_point<std::chrono::steady_clock>, 
-                                                                        uint32_t>;
-    std::deque<deque_pair> m_recent_frames; 
-    std::vector<std::vector<MemoryWrite>> m_writing_patterns;
+    
+    uint32_t m_last_frame_address;
 
+    uint32_t m_curr_mw_start_address;
+    uint32_t m_curr_mw_frames_count;
+    double m_last_interval_sec;
+    const double tolerance; //0.5 ??
+    bool m_is_first_frame_write; 
+    std::chrono::steady_clock::time_point m_last_frame_time;
+    std::chrono::steady_clock::time_point m_curr_mw_start_time;
+    std::chrono::steady_clock::time_point m_start_time_point;
 
-    /*
-    * @desc: Remove old frames (older then DELTA)
-    */
-    void RemoveFrames();
+    std::vector<MemoryWrite> m_current_pattern;
+
+    void PushCurrentMemoryWrite(std::chrono::steady_clock::time_point cur_time);
 
     /*
     * @desc: Evaluates whether the current state meets system failure conditions
@@ -83,24 +87,12 @@ private:
     */
     bool CheckSystemFailure(); 
 
-    /*
-    * @desc: Checks if the last THRESHOLD addresses in the qeque are consecutive
-    * @return: true if addresses are consecutive, false otherwise   
-    */
-    bool IsConsequent(); 
 
     /*
     * @desc: Creates a system failure log file
     * @param: frame_address - The address of the frame where failure was detected   
     */
-    void CreateLog(uint32_t frame_address);
-
-    /*
-    * @desc: Finds the index of the writing pattern to which a frame belongs
-    * @param: frame_address - The address of the frame to search for   
-    */
-    uint32_t FindPatternIndex(uint32_t frame_address);
-
+    void CreateLog();
 };
 
 }
