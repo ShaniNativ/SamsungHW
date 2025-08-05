@@ -55,7 +55,8 @@ void samsung::WritingPatternDetector::ReceiveFlashFrame(const samsung::FlashFram
         bool is_sequential_address = (flash_frame.address == m_last_frame_address + 1) ? 
                                                             true : false;
         bool is_same_mw = true;
-        if (!m_is_first_frame_write && m_last_interval_sec > 0.0) 
+        
+        if (m_last_interval_sec > 0.0) 
         {
             is_same_mw = (std::abs(interval_sec - m_last_interval_sec) < tolerance);
         }
