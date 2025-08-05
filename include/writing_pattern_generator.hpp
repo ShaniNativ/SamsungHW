@@ -10,6 +10,7 @@ Exercise: Samsumg - Work Assigment
 #include <string> //std::string
 #include <vector> //std::vector
 #include <memory> //std::shred_ptr
+#include <fstream> //std::fstream
 
 #include "definitions.hpp" //definitions api
 #include "dispatcher.hpp"//dispatcher api
@@ -34,6 +35,16 @@ class WPGenerator
 {
 public:
     /*
+    * @desc: constructor to prepare a text file for arbitrary data to frames 
+    */
+    WPGenerator(); 
+
+    /*
+    * @desc: destructor to close the file 
+    */
+    ~WPGenerator();
+
+    /*
     * @desc: Parses a YAML configuration file and generates a binary file
     * @param: config_file that contains writing patterns and global metadata. 
     */
@@ -49,8 +60,9 @@ private:
     
     samsung::ConfigFile m_config_params; //refernce of not?
     ilrd::Dispatcher<const std::string&> m_dispatcher_new_bin;
+    std::fstream m_data_file; 
 
-    // void GenerateData(char* data, size_t size); //needed??
+    void CopyData(char* data); //needed??
 
     /*
     * @desc: Serializes the parsed writing pattern configuration into a 
