@@ -17,5 +17,5 @@ There are three main modules that write in this project:
 
   How to run the system:
   1. Run the cmake to create a make file then compile
-  2. Run the test_system.out and provide the path to the [a relative link](samsung_hw_shani_nativ.pdf)
+  2. Run the test_system.out and provide the path to the [pdf](samsung_hw_shani_nativ.pdf)
 
