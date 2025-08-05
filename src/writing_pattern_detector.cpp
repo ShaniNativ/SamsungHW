@@ -17,40 +17,76 @@ Exercise: Samsumg - Work Assigment
 
 /*============================ PUBLIC API =====================================*/
 
-samsung::WritingPatternDetector::WritingPatternDetector() : 
-                m_delta(0), m_threshold(0), m_sf_detected(false)
-{
-}
+samsung::WritingPatternDetector::WritingPatternDetector(uint32_t delta, uint32_t threshold) : 
+            m_delta(delta), m_threshold(threshold), m_sf_detected(false),
+            m_last_frame_address(0), m_curr_mw_start_address(0), m_curr_mw_frames_count(0),
+            m_last_interval_sec(0.0), tolerance(0.2), m_is_first_frame_write(true), 
+            m_last_frame_time(std::chrono::steady_clock::time_point{}),
+            m_curr_mw_start_time(std::chrono::steady_clock::time_point{}), 
+            m_start_time_point(std::chrono::steady_clock::now())
 
-void samsung::WritingPatternDetector::InitDetector(std::shared_ptr<samsung::IConfigurator> configurator)
 {
-    samsung::ConfigFile config = configurator->GetConfigFile();
-    m_delta = config.delta;
-    m_threshold = config.threshold;
-    m_sf_detected = false; 
-    m_writing_patterns.clear();
-    m_writing_patterns = config.writing_patterns;
-    m_recent_frames.clear(); 
 }
 
 void samsung::WritingPatternDetector::ReceiveFlashFrame(const samsung::FlashFrame& 
                                             flash_frame)
 {
-
     if(m_sf_detected)
     {
         return; //??
     }
 
-    m_recent_frames.push_back(std::pair{std::chrono::steady_clock::now(), 
-                                                            flash_frame.address});
-    RemoveFrames(); 
-    
+    auto now = std::chrono::steady_clock::now();
+
+    if(m_is_first_frame_write)
+    {
+        m_curr_mw_start_address = flash_frame.address;
+        m_curr_mw_start_time = now;
+        m_curr_mw_frames_count = 1;
+        m_last_frame_time = now;
+        m_last_frame_address = flash_frame.address;
+        m_is_first_frame_write  = false;
+    }
+    else
+    {
+        std::chrono::duration<double> interval = now - m_last_frame_time;
+        double interval_sec = interval.count();
+
+        bool is_sequential_address = (flash_frame.address == m_last_frame_address + 1) ? 
+                                                            true : false;
+        bool is_same_mw = true;
+        if (!m_is_first_frame_write && m_last_interval_sec > 0.0) 
+        {
+            is_same_mw = (std::abs(interval_sec - m_last_interval_sec) < tolerance);
+        }
+
+        if(!is_sequential_address)
+        {
+            PushCurrentMemoryWrite(now);
+            m_current_pattern.clear();
+        }
+        else if (!is_same_mw && m_curr_mw_frames_count > 0)
+        {
+            PushCurrentMemoryWrite(now);
+        }
+        else
+        {
+            ++m_curr_mw_frames_count;
+        }
+        
+        m_last_interval_sec = interval_sec;
+        m_last_frame_time = now;
+        m_last_frame_address = flash_frame.address;
+    }
 
     if(CheckSystemFailure()) 
     {
         m_sf_detected = true; 
-        CreateLog(flash_frame.address); 
+        if (m_curr_mw_frames_count > 0)
+        {
+            PushCurrentMemoryWrite(std::chrono::steady_clock::now());
+        }
+        CreateLog(); 
     } 
     else
     {
@@ -65,79 +101,56 @@ bool samsung::WritingPatternDetector::IsSystemFailureDetected()
 
 /*============================ PRIVATE API =====================================*/
 
-
-void samsung::WritingPatternDetector::RemoveFrames()
+void samsung::WritingPatternDetector::PushCurrentMemoryWrite
+                                (std::chrono::steady_clock::time_point cur_time)
 {
-    auto delta_duration = std::chrono::seconds(m_delta);
-    auto cur_time = std::chrono::steady_clock::now(); 
+    uint32_t mw_start_time = static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(
+                                        m_curr_mw_start_time - m_start_time_point).count());
+    uint32_t mw_duration = static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(
+                                        cur_time - m_curr_mw_start_time).count());
 
-    while(!m_recent_frames.empty() && 
-                    ((cur_time - m_recent_frames.front().first) > delta_duration)) 
-    {
-        m_recent_frames.pop_front(); 
-    }
+    m_current_pattern.push_back({mw_start_time, mw_duration, m_curr_mw_start_address, 
+                                                        m_curr_mw_frames_count});
+    m_curr_mw_start_address = m_last_frame_address; //reset vars to the next memory write
+    m_curr_mw_start_time = cur_time; 
+    m_curr_mw_frames_count = 0;
+
 }
 
 bool samsung::WritingPatternDetector::CheckSystemFailure()
 {
-    if(m_recent_frames.size() >= m_threshold  && IsConsequent())
-    {
-        return true; 
-    }
+    uint32_t total_frames = m_curr_mw_frames_count;
+    uint32_t total_time = 0;
 
-    return false;
-}
-
-bool samsung::WritingPatternDetector::IsConsequent()
-{
-    if (m_recent_frames.size() < m_threshold)
+    if (!m_current_pattern.empty())
     {
-        return false;
-    }
-    size_t start = m_recent_frames.size() - m_threshold;
-
-    for(size_t i = start; i < m_recent_frames.size() - 1; ++i)
-    {
-        if(m_recent_frames[i + 1].second != m_recent_frames[i].second + 1)
+        for (const auto& mw : m_current_pattern)
         {
-            return false; 
+            total_frames += mw.frames;
         }
+
+        uint32_t start_time = m_current_pattern.front().start_time;
+        auto now = std::chrono::steady_clock::now();
+        uint32_t now_sec = static_cast<uint32_t>(std::chrono::duration_cast
+                    <std::chrono::seconds>(now - m_start_time_point).count());
+        total_time = now_sec - start_time;
+    }
+    else if (m_curr_mw_frames_count > 0)
+    {
+        total_time = static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::steady_clock::now() - m_curr_mw_start_time).count());
     }
 
-    return true;
+    return (total_frames >= m_threshold && total_time <= m_delta);
 }
 
-uint32_t samsung::WritingPatternDetector::FindPatternIndex(uint32_t frame_address)
+void samsung::WritingPatternDetector::CreateLog()
 {
-    for (size_t pattern_idx = 0; pattern_idx < m_writing_patterns.size(); 
-                                                                    ++pattern_idx) 
+    if(m_current_pattern.empty())
     {
-        const auto& pattern = m_writing_patterns[pattern_idx];
-
-        for (const auto& mem_write : pattern) 
-        {
-            uint32_t start = mem_write.start_address;
-            uint32_t end = start + mem_write.frames;
-
-            if (frame_address >= start && frame_address < end) 
-            {
-                return static_cast<uint32_t>(pattern_idx);
-            }
-        }
+        throw std::runtime_error("There is no data to create log");
     }
 
-    throw std::runtime_error("Invalid Frame Address - does not match any known writing pattern");
-}
-
-void samsung::WritingPatternDetector::CreateLog(uint32_t frame_address)
-{
-
-    uint32_t pattern_index = FindPatternIndex(frame_address);
-
-    if (pattern_index >= m_writing_patterns.size()) 
-    {
-        throw std::out_of_range("Invalid pattern index in CreateLog");
-    }
     std::ofstream log_file("log.txt");
 
     if (!log_file.is_open()) {
@@ -160,13 +173,12 @@ void samsung::WritingPatternDetector::CreateLog(uint32_t frame_address)
     log_file << "user: " << username << "\n";
     log_file << "date: " << date_buffer << "\n\n";
 
-    if (!m_writing_patterns.empty()) 
-    {
-        auto addr = m_writing_patterns[pattern_index][0].start_address;
-        log_file << "SYSTEM_FAILURE_START ADDRESS: 0x"
-                 << std::hex << std::setw(8) << std::setfill('0') << addr << 
-                                    " # start address of the writing pattern\n"  << std::dec;
-    }
+
+    auto addr = m_current_pattern[0].start_address;
+    log_file << "SYSTEM_FAILURE_START ADDRESS: 0x"
+                << std::hex << std::setw(8) << std::setfill('0') << addr << 
+                                " # start address of the writing pattern\n"  << std::dec;
+    
     log_file.flush();
 
     log_file << "THRESHOLD: "  << m_threshold << " # number of writes\n";
@@ -175,7 +187,7 @@ void samsung::WritingPatternDetector::CreateLog(uint32_t frame_address)
     log_file << "system_failure_writing pattern:\n\n";
     int count = 1;
 
-    for (const auto& mw : m_writing_patterns[pattern_index]) 
+    for (const auto& mw : m_current_pattern) 
     {
         log_file << "    # memory write " << count++ << "\n";
         log_file << "    memory_write:\n";
@@ -187,5 +199,4 @@ void samsung::WritingPatternDetector::CreateLog(uint32_t frame_address)
     }
 
     log_file.close();
-    
 }
