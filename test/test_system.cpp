@@ -25,8 +25,8 @@ int main(int argc, char* argv[])
 
     //init detector
     std::shared_ptr<samsung::WritingPatternDetector> detector = 
-                    std::make_shared<samsung::WritingPatternDetector>();
-    detector->InitDetector(configurator);
+                    std::make_shared<samsung::WritingPatternDetector>
+                    (configurator->GetConfigFile().delta, configurator->GetConfigFile().threshold);
 
     //init transmitter
     samsung::FrameTransmitter transmitter(detector); 
