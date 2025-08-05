@@ -13,9 +13,9 @@ There are three main modules that write in this project:
 2. Frame Transmitter - Reads the generated binary file and transmits it frame by frame to the next module.
 3. Writing Pattern Detector - Receives frames and check if there a system failure occur., If so, it logs the failure and stops the transmission.
 
-* For more Explanation about the modules and the system including the UML diagram read this doc: linkToPDf *
+* For more Explanation about the modules and the system including the UML diagram read this doc: [pdf](samsung_hw_shani_nativ.pdf)
 
   How to run the system:
   1. Run the cmake to create a make file then compile
-  2. Run the test_system.out and provide the path to the [pdf](samsung_hw_shani_nativ.pdf)
+  2. Run the test_system.out and provide the path to the config.yaml
 
