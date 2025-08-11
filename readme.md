@@ -19,15 +19,16 @@ How to run the system:
 1. Download all project files into a single main folder, preserving the existing folder structure.
 2. Ensure that CMake is installed in your machine
 3. Build the project:
-   step 1:  Create a new directory
+   
+   1.  Create a new directory
              "mkdir build"
-   step 2: Navigate into it:
+   2. Navigate into it:
              "cd build"
-   step 3: Run CMake
+   3. step 3: Run CMake
              "cmake .."
-   step 4: Compile the project
+   4. step 4: Compile the project
              "cmake --build ."
-4. Run the test_system.out and provide the path to the configuration file
+5. Run the test_system.out and provide the path to the configuration file
    for example:
    "test_system.out ../config_1.yaml"
    "test_system.out ../config_2.yaml"
