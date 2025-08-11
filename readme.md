@@ -15,6 +15,10 @@ There are three main modules:
 
 * For more Explanation about the modules and the system including the UML diagram please read this doc: [pdf](samsung_hw_shani_nativ.pdf)
 
+Technical details:
+* Inplemented in c++17
+* Tested in a Linux environment
+  
 How to run the system:
 1. Download all project files into a single main folder, preserving the existing folder structure.
 2. Ensure that CMake is installed in your machine
