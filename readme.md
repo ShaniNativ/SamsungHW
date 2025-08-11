@@ -24,9 +24,9 @@ How to run the system:
              "mkdir build"
    2. Navigate into it:
              "cd build"
-   3. step 3: Run CMake
+   3. Run CMake
              "cmake .."
-   4. step 4: Compile the project
+   4. Compile the project
              "cmake --build ."
 5. Run the test_system.out and provide the path to the configuration file
    for example:
