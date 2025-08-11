@@ -1,0 +1,21 @@
+#example of 2 writing patterns configurations
+
+THRESHOLD: 10
+DELTA: 200
+writing_patterns:
+  - 
+    - memory_write:
+        Start_time: 0
+        Duration: 5
+        Start_address: 0x00000001
+        N: 5
+    - memory_write:
+        Start_time: 10
+        Duration: 10
+        Start_address: 0x00000006 #changed from 7
+        N: 6
+    - memory_write:
+        Start_time: 20
+        Duration: 3
+        Start_address: 0x0000000E
+        N: 7
